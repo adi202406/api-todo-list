@@ -28,7 +28,6 @@ class RegisterUserRequest extends FormRequest
             'name' => 'required|string|max:100',
             'email' => 'required|string|email|unique:users|max:100',
             'password' => 'required|string|confirmed|min:8',
-            'username' => 'required|string|unique:users|max:100|regex:/^[a-z0-9_-]+$/',
         ];
     }
 
@@ -49,10 +48,6 @@ class RegisterUserRequest extends FormRequest
             'password.required' => 'Password wajib diisi.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
             'password.min' => 'Password minimal terdiri dari 8 karakter.',
-            'username.required' => 'Username wajib diisi.',
-            'username.unique' => 'Username ini sudah digunakan.',
-            'username.max' => 'Username maksimal terdiri dari 100 karakter.',
-            'username.regex' => 'Username hanya boleh terdiri dari huruf kecil, angka, garis bawah, dan tanda hubung.',
         ];
     }
 }

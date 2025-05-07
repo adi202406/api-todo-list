@@ -25,7 +25,6 @@ class UpdateProfileRequest extends FormRequest
     {
         return [
             'name' => 'sometimes|string|max:100',
-            'username' => 'sometimes|string|max:100|alpha_dash|unique:users,username,' . auth()->id(),
             'email' => 'sometimes|string|email|max:100|unique:users,email,' . auth()->id(),
             'avatar' => 'sometimes|image|mimes:jpeg,png,jpg|max:2048'
         ];
@@ -39,9 +38,6 @@ class UpdateProfileRequest extends FormRequest
     public function messages()
     {
         return [
-            'username.alpha_dash' => 'Username dapat berisi huruf, angka, tanda hubung, dan garis bawah.',
-            'username.unique' => 'Username sudah digunakan.',
-            'username.max' => 'Username tidak boleh lebih dari 50 karakter.',
             'avatar.mimes' => 'The avatar must be a file of type: jpeg, png, jpg',
             'avatar.max' => 'The avatar may not be greater than 2MB.',
         ];

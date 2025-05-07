@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
@@ -40,4 +41,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
         ->middleware(['signed'])
         ->name('verification.verify');
+});
+
+Route::prefix('auth/google')->group(function () {
+    Route::get('/', [GoogleAuthController::class, 'redirectToGoogle']);
+    Route::get('/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
+});
+
+// Protected Routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', [GoogleAuthController::class, 'profile']);
+    Route::post('/logout', [GoogleAuthController::class, 'logout']);
 });

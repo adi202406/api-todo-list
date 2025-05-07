@@ -18,9 +18,8 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'username' => $this->username,
-            'avatar' => $this->avatar,
-            'avatar_public_id' => $this->avatar_public_id,
+            'avatar' => $this->whenNotNull($this->avatar),
+            'avatar_public_id' => $this->whenNotNull($this->avatar_public_id),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

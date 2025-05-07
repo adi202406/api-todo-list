@@ -22,9 +22,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
-        'username',
         'avatar',
         'avatar_public_id',
+        'google_id',
+        'google_token',
+        'google_refresh_token',
     ];
 
     /**
@@ -48,11 +50,6 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
-    }
-
-    public function getRouteKeyName()
-    {
-        return 'username';
     }
 
     /**

@@ -21,7 +21,6 @@ class RegisterTest extends TestCase
             'email' => 'john.doe@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123', // Confirm password for validation
-            'username' => 'johndoe',
         ];
 
         // Send a POST request to the registration route
@@ -38,7 +37,6 @@ class RegisterTest extends TestCase
                 'id',
                 'name',
                 'email',
-                'username',
             ],
         ]);
 
@@ -46,7 +44,6 @@ class RegisterTest extends TestCase
         $this->assertDatabaseHas('users', [
             'name' => 'John Doe',
             'email' => 'john.doe@example.com',
-            'username' => 'johndoe',
         ]);
 
         // Assert password is hashed
@@ -72,7 +69,7 @@ class RegisterTest extends TestCase
         $response->assertStatus(422); // Unprocessable Entity
 
         // Assert the response contains validation errors
-        $response->assertJsonValidationErrors(['email', 'password', 'username']);
+        $response->assertJsonValidationErrors(['email', 'password']);
 
         // Assert user is not created in the database
         $this->assertDatabaseMissing('users', [
@@ -90,7 +87,6 @@ class RegisterTest extends TestCase
             'name' => 'Existing User',
             'email' => 'existing@example.com',
             'password' => Hash::make('password123'),
-            'username' => 'existinguser',
         ]);
 
         // Prepare request data with duplicate email
@@ -99,7 +95,6 @@ class RegisterTest extends TestCase
             'email' => 'existing@example.com', // Duplicate email
             'password' => 'password123',
             'password_confirmation' => 'password123', // Confirm password for validation
-            'username' => 'johndoe',
         ];
 
         // Send a POST request to the registration route
