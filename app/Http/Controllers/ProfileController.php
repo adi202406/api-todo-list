@@ -22,8 +22,15 @@ class ProfileController extends Controller
     {
         $user = auth()->user();
         
-        // Update user data from validated request
-        $user->update($request->validated());
+
+        // Cek apakah user login via Google
+        if ($user->isGoogleUser()) {
+            // Hanya izinkan update nama saja dari request
+            $user->update($request->only('name'));
+        } else {
+            // Jika bukan user Google, update semua yang tervalidasi
+            $user->update($request->validated());
+        }
         
         // Check if avatar was uploaded
         if ($request->hasFile('avatar')) {
@@ -53,6 +60,10 @@ class ProfileController extends Controller
     public function updatePassword(UpdatePasswordRequest $request)
     {
         $user = auth()->user();
+
+        if ($user->isGoogleUser()) {
+            return response()->json(['message' => 'User Google tidak dapat mengubah password.'], 422);
+        }
 
         // Validasi password lama
         if (!Hash::check($request->current_password, $user->password)) {

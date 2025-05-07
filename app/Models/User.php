@@ -72,4 +72,9 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $this->notify(new \App\Notifications\VerifyEmailNotification);
     }
+
+    public function isGoogleUser()
+    {
+        return !is_null($this->google_id);
+    }
 }
