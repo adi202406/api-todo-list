@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,7 @@ use Illuminate\Auth\AuthenticationException;
 
 class AuthController extends Controller
 {
-    public function register(RegisterUserRequest $request)
+    public function register(RegisterUserRequest $request) : JsonResponse
     {
         $validated = $request->validated();
 
@@ -33,7 +34,7 @@ class AuthController extends Controller
         ], 201);
     }
 
-    public function login(UserLoginRequest $request)
+    public function login(UserLoginRequest $request) : JsonResponse
     {
         $request->validated();
 
@@ -54,20 +55,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function user(Request $request)
-    {
-        $user = $request->user();
-        
-        if (!$user) {
-            return response()->json([
-                'message' => 'Unauthorized'
-            ], 401);
-        }
-    
-        return new UserResource($user);
-    }
-
-    public function logout(Request $request)
+    public function logout(Request $request) : JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
 
