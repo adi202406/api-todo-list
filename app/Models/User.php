@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Workspace;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
@@ -76,5 +77,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isGoogleUser()
     {
         return !is_null($this->google_id);
+    }
+
+    public function workspaces()
+    {
+        return $this->hasMany(Workspace::class, 'owner_id');
     }
 }

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -52,3 +53,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [GoogleAuthController::class, 'profile']);
     Route::post('/logout', [GoogleAuthController::class, 'logout']);
 });
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/workspaces', [WorkspaceController::class, 'index']);
+    Route::post('/workspaces', [WorkspaceController::class, 'store']);
+    Route::get('/workspaces/{slug}', [WorkspaceController::class, 'show']);
+    Route::put('/workspaces/{id}', [WorkspaceController::class, 'update']);
+    Route::delete('/workspaces/{id}', [WorkspaceController::class, 'destroy']);
+}); 
+
+
