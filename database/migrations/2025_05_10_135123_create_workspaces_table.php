@@ -16,7 +16,8 @@ return new class extends Migration
             $table->string('title');
             $table->string('slug')->unique(); // Tambahan slug unik
             $table->enum('visibility', ['private', 'public'])->default('private');
-            $table->foreignId('owner_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
+            $table->softDeletes(); // Soft delete
             $table->timestamps();
         });
     }

@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('google_refresh_token')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
+            $table->softDeletes(); // Soft delete
             $table->timestamps();
         });
 

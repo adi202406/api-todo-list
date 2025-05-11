@@ -60,6 +60,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/workspaces/{slug}', [WorkspaceController::class, 'show']);
     Route::put('/workspaces/{id}', [WorkspaceController::class, 'update']);
     Route::delete('/workspaces/{id}', [WorkspaceController::class, 'destroy']);
+    Route::post('workspaces/{id}/invite', [WorkspaceController::class, 'inviteUser']);
+    Route::patch('workspaces/{id}/accept-invitation', [WorkspaceController::class, 'acceptInvitation']);
+    Route::delete('workspaces/{id}/users', [WorkspaceController::class, 'removeUser']);
 }); 
-
 

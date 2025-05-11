@@ -1,19 +1,26 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\Workspace;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\WorkspaceRequest;
 use App\Http\Resources\WorkspaceResource;
+use App\Models\User;
+use App\Models\Workspace;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class WorkspaceController extends Controller
 {
     // GET /api/workspaces
     public function index()
     {
-        $workspaces = Workspace::where('owner_id', Auth::id())->get();
+        $workspaces = Workspace::where('owner_id', Auth::id())
+            ->withCount('users')
+            ->get();
+
+        if ($workspaces->isEmpty()) {
+            return response()->json(['message' => 'You do not have any workspaces.'], 404);
+        }
         return WorkspaceResource::collection($workspaces);
     }
 
@@ -27,10 +34,17 @@ class WorkspaceController extends Controller
         $slug = $this->generateUniqueSlug($slug);
 
         $workspace = Workspace::create([
-            'title'       => $validated['title'],
+            'title'      => $validated['title'],
             'slug'       => $slug,
             'visibility' => $validated['visibility'],
             'owner_id'   => Auth::id(),
+        ]);
+
+        // Sync workspace creator as owner in pivot table
+        $workspace->users()->attach(Auth::id(), [
+            'role'      => 'owner',
+            'status'    => 'active',
+            'joined_at' => now(),
         ]);
 
         return new WorkspaceResource($workspace);
@@ -39,9 +53,16 @@ class WorkspaceController extends Controller
     // GET /api/workspaces/{id}
     public function show($slug)
     {
-        $workspace = Workspace::where('owner_id', Auth::id())
-                                ->where('slug', $slug)
-                                ->firstOrFail();
+        $workspace = Workspace::where('slug', $slug)
+            ->where(function ($query) {
+                $query->where('owner_id', Auth::id())
+                    ->orWhereHas('workspaceUsers', function ($q) {
+                        $q->where('user_id', Auth::id());
+                    });
+            })
+            ->with(['workspaceUsers'])
+            ->firstOrFail();
+
         return new WorkspaceResource($workspace);
     }
 
@@ -57,8 +78,8 @@ class WorkspaceController extends Controller
         $slug = $this->generateUniqueSlug($slug);
 
         $workspace->update([
-            'title' => $validated['title'],
-            'slug'  => $slug,
+            'title'      => $validated['title'],
+            'slug'       => $slug,
             'visibility' => $validated['visibility'],
         ]);
 
@@ -70,12 +91,128 @@ class WorkspaceController extends Controller
     {
         $workspace = Workspace::where('owner_id', Auth::id())->findOrFail($id);
 
-        if(!$workspace) {
-            return response()->json(['message' => 'Workspace cannot be deleted.'], 403);
-        }
         $workspace->delete();
 
         return response()->json(['message' => 'Workspace deleted successfully.']);
+    }
+
+    public function inviteUser(Request $request, $id)
+    {
+        // Authorize workspace ownership
+        $workspace = Workspace::where('owner_id', Auth::id())->findOrFail($id);
+
+        // Validate input
+        $validated = $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'role'  => 'required|in:editor,viewer',
+        ]);
+
+        // Get the invited user
+        $user = User::where('email', $validated['email'])->first();
+
+        // Include soft-deleted pivot record in the check
+        $existingMember = $workspace->users()
+            ->withPivot('status', 'deleted_at')
+            ->wherePivot('user_id', $user->id)
+            ->withTrashed() // Include soft-deleted pivot if using custom pivot model with SoftDeletes
+            ->first();
+
+        // Case: user still in workspace
+        if ($existingMember && is_null($existingMember->pivot->deleted_at)) {
+            if ($existingMember->pivot->status === 'pending') {
+                return response()->json([
+                    'message' => 'User has already been invited and the invitation is pending',
+                ], 422);
+            }
+
+            if ($existingMember->pivot->status === 'active') {
+                return response()->json([
+                    'message' => 'User is already an active member of this workspace',
+                ], 422);
+            }
+        }
+
+        // Case: user was removed (soft deleted) before — restore and update data
+        if ($existingMember && !is_null($existingMember->pivot->deleted_at)) {
+            $workspace->users()->updateExistingPivot($user->id, [
+                'role'       => $validated['role'],
+                'status'     => 'pending',
+                'joined_at'  => null,
+                'deleted_at' => null, // restore soft delete
+            ]);
+
+            return response()->json([
+                'message' => 'User has been re-invited successfully',
+            ], 200);
+        }
+
+        // New invite
+        $workspace->users()->attach($user->id, [
+            'role'      => $validated['role'],
+            'status'    => 'pending',
+            'invited_by' => Auth::id(),
+            'joined_at' => null,
+        ]);
+
+        return response()->json([
+            'message' => 'Invitation sent successfully',
+        ], 201);
+    }
+
+
+    public function acceptInvitation($id)
+    {
+        $workspace = Workspace::findOrFail($id);
+        
+        // Check if user has pending invitation
+        $membership = $workspace->users()
+            ->where('user_id', Auth::id())
+            ->wherePivot('status', 'pending')
+            ->firstOrFail();
+
+        // Update status to active
+        $workspace->users()->updateExistingPivot(Auth::id(), [
+            'status' => 'active',
+            'joined_at' => now()
+        ]);
+
+        return response()->json([
+            'message' => 'You have successfully joined the workspace'
+        ], 200);
+    }
+
+    public function removeUser(Request $request, $id)
+    {
+        // Authorize workspace ownership
+        $workspace = Workspace::where('owner_id', Auth::id())->findOrFail($id);
+
+        // Validate input
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        // Check if user exists in workspace
+        $membership = $workspace->users()
+            ->where('user_id', $validated['user_id'])
+            ->wherePivot('status', 'active')
+            ->firstOrFail();
+
+        // Prevent removing workspace owner
+        if ($membership->pivot->role === 'owner') {
+            return response()->json([
+                'message' => 'Cannot remove workspace owner'
+            ], 403);
+        }
+
+        // Soft delete the user from workspace and update status
+        $workspace->users()->updateExistingPivot($validated['user_id'], [
+            'status' => 'removed',
+            'deleted_at' => now()
+        ]);
+
+        return response()->json([
+            'message' => 'User has been removed from workspace successfully'
+        ], 200);
     }
 
     // Generate a unique slug if already exists
