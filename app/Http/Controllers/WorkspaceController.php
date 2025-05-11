@@ -95,6 +95,7 @@ class WorkspaceController extends Controller
 
         $workspace->update([
             'title'      => $validated['title'],
+            'description' => $validated['description'],
             'slug'       => $slug,
             'visibility' => $validated['visibility'],
         ]);
