@@ -17,7 +17,9 @@ class WorkspaceResource extends JsonResource
         return [
             'id' => $this->id,
             'title' => $this->title,
+            'description' => $this->description,
             'slug' => $this->slug,
+            'banner_image' => $this->banner_image,
             'visibility' => $this->visibility,
             'owner' => new UserResource($this->whenLoaded('owner')),
             'members_count' => $this->users()->count(), // Add this line

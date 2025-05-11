@@ -23,7 +23,9 @@ class WorkspaceRequest extends FormRequest
     {
         return [
             'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
             'visibility' => 'required|in:public,private',
+            'banner_image' => 'sometimes|image|mimes:jpeg,png,jpg|max:2048'
         ];
     }
 }

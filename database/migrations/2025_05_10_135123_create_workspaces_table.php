@@ -14,6 +14,9 @@ return new class extends Migration
         Schema::create('workspaces', function (Blueprint $table) {
             $table->id();
             $table->string('title');
+            $table->string('description')->nullable();
+            $table->string('banner_image')->nullable();
+            $table->string('banner_image_public_id')->nullable();
             $table->string('slug')->unique(); // Tambahan slug unik
             $table->enum('visibility', ['private', 'public'])->default('private');
             $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();

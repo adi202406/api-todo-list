@@ -10,12 +10,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Workspace extends Model
 {
     use SoftDeletes;
-    
+
     protected $fillable = [
         'title',
         'slug',
         'visibility',
         'owner_id',
+        'description',
+        'banner_image',
+        'banner_image_public_id',
     ];
 
     public function getRouteKeyName()

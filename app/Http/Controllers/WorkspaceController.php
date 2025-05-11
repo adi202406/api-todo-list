@@ -5,6 +5,7 @@ use App\Http\Requests\WorkspaceRequest;
 use App\Http\Resources\WorkspaceResource;
 use App\Models\User;
 use App\Models\Workspace;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -34,11 +35,26 @@ class WorkspaceController extends Controller
         $slug = $this->generateUniqueSlug($slug);
 
         $workspace = Workspace::create([
-            'title'      => $validated['title'],
-            'slug'       => $slug,
-            'visibility' => $validated['visibility'],
-            'owner_id'   => Auth::id(),
+            'title'       => $validated['title'],
+            'description' => $validated['description'],
+            'slug'        => $slug,
+            'visibility'  => $validated['visibility'],
+            'owner_id'    => Auth::id(),
         ]);
+
+        if ($request->hasFile('banner_image')) {
+            // Upload new avatar to Cloudinary
+            $uploadResult = Cloudinary::upload($request->file('banner_image')->getRealPath());
+
+            // Get the secure URL and public ID
+            $uploadedFileUrl = $uploadResult->getSecurePath();
+            $publicId        = $uploadResult->getPublicId();
+
+            // Update user's avatar and avatar_public_id
+            $workspace->banner_image           = $uploadedFileUrl;
+            $workspace->banner_image_public_id = $publicId;
+            $workspace->save();
+        }
 
         // Sync workspace creator as owner in pivot table
         $workspace->users()->attach(Auth::id(), [
@@ -82,6 +98,25 @@ class WorkspaceController extends Controller
             'slug'       => $slug,
             'visibility' => $validated['visibility'],
         ]);
+
+        if ($request->hasFile('banner_image')) {
+            // If user already has an banner_image, delete the old one
+            if ($workspace->banner_image_public_id) {
+                // Delete old image from Cloudinary
+                Cloudinary::destroy($workspace->banner_image_public_id);
+            }
+            // Upload new banner_image to Cloudinary
+            $uploadResult = Cloudinary::upload($request->file('banner_image')->getRealPath());
+            
+            // Get the secure URL and public ID
+            $uploadedFileUrl = $uploadResult->getSecurePath();
+            $publicId = $uploadResult->getPublicId();
+            
+            // Update wo$workspace's banner_image and banner_image_public_id
+            $workspace->banner_image = $uploadedFileUrl;
+            $workspace->banner_image_public_id = $publicId;
+            $workspace->save();
+        }
 
         return new WorkspaceResource($workspace);
     }
@@ -133,7 +168,7 @@ class WorkspaceController extends Controller
         }
 
         // Case: user was removed (soft deleted) before — restore and update data
-        if ($existingMember && !is_null($existingMember->pivot->deleted_at)) {
+        if ($existingMember && ! is_null($existingMember->pivot->deleted_at)) {
             $workspace->users()->updateExistingPivot($user->id, [
                 'role'       => $validated['role'],
                 'status'     => 'pending',
@@ -148,10 +183,10 @@ class WorkspaceController extends Controller
 
         // New invite
         $workspace->users()->attach($user->id, [
-            'role'      => $validated['role'],
-            'status'    => 'pending',
+            'role'       => $validated['role'],
+            'status'     => 'pending',
             'invited_by' => Auth::id(),
-            'joined_at' => null,
+            'joined_at'  => null,
         ]);
 
         return response()->json([
@@ -159,11 +194,10 @@ class WorkspaceController extends Controller
         ], 201);
     }
 
-
     public function acceptInvitation($id)
     {
         $workspace = Workspace::findOrFail($id);
-        
+
         // Check if user has pending invitation
         $membership = $workspace->users()
             ->where('user_id', Auth::id())
@@ -172,12 +206,12 @@ class WorkspaceController extends Controller
 
         // Update status to active
         $workspace->users()->updateExistingPivot(Auth::id(), [
-            'status' => 'active',
-            'joined_at' => now()
+            'status'    => 'active',
+            'joined_at' => now(),
         ]);
 
         return response()->json([
-            'message' => 'You have successfully joined the workspace'
+            'message' => 'You have successfully joined the workspace',
         ], 200);
     }
 
@@ -200,18 +234,18 @@ class WorkspaceController extends Controller
         // Prevent removing workspace owner
         if ($membership->pivot->role === 'owner') {
             return response()->json([
-                'message' => 'Cannot remove workspace owner'
+                'message' => 'Cannot remove workspace owner',
             ], 403);
         }
 
         // Soft delete the user from workspace and update status
         $workspace->users()->updateExistingPivot($validated['user_id'], [
-            'status' => 'removed',
-            'deleted_at' => now()
+            'status'     => 'removed',
+            'deleted_at' => now(),
         ]);
 
         return response()->json([
-            'message' => 'User has been removed from workspace successfully'
+            'message' => 'User has been removed from workspace successfully',
         ], 200);
     }
 
