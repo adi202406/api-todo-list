@@ -1,14 +1,15 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Http\Requests\WorkspaceRequest;
-use App\Http\Resources\WorkspaceResource;
 use App\Models\User;
 use App\Models\Workspace;
-use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\WorkspaceRequest;
+use App\Http\Resources\WorkspaceResource;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class WorkspaceController extends Controller
 {
@@ -30,40 +31,54 @@ class WorkspaceController extends Controller
     {
         $validated = $request->validated();
 
-        // Generate unique slug if not provided
-        $slug = Str::slug($validated['title']);
-        $slug = $this->generateUniqueSlug($slug);
+        try {
+            DB::beginTransaction();
 
-        $workspace = Workspace::create([
-            'title'       => $validated['title'],
-            'description' => $validated['description'],
-            'slug'        => $slug,
-            'visibility'  => $validated['visibility'],
-            'owner_id'    => Auth::id(),
-        ]);
+            // Generate unique slug if not provided
+            $slug = Str::slug($validated['title']);
+            $slug = $this->generateUniqueSlug($slug);
 
-        if ($request->hasFile('banner_image')) {
-            // Upload new avatar to Cloudinary
-            $uploadResult = Cloudinary::upload($request->file('banner_image')->getRealPath());
+            $workspace = Workspace::create([
+                'title'       => $validated['title'],
+                'description' => $validated['description'],
+                'slug'        => $slug,
+                'visibility'  => $validated['visibility'],
+                'owner_id'    => Auth::id(),
+            ]);
 
-            // Get the secure URL and public ID
-            $uploadedFileUrl = $uploadResult->getSecurePath();
-            $publicId        = $uploadResult->getPublicId();
+            if ($request->hasFile('banner_image')) {
+                // Upload new banner to Cloudinary
+                $uploadResult = Cloudinary::upload($request->file('banner_image')->getRealPath());
 
-            // Update user's avatar and avatar_public_id
-            $workspace->banner_image           = $uploadedFileUrl;
-            $workspace->banner_image_public_id = $publicId;
-            $workspace->save();
+                // Get the secure URL and public ID
+                $uploadedFileUrl = $uploadResult->getSecurePath();
+                $publicId        = $uploadResult->getPublicId();
+
+                // Update workspace with banner image info
+                $workspace->banner_image           = $uploadedFileUrl;
+                $workspace->banner_image_public_id = $publicId;
+                $workspace->save();
+            }
+
+            // Sync workspace creator as owner in pivot table
+            $workspace->users()->attach(Auth::id(), [
+                'role'      => 'owner',
+                'status'    => 'active',
+                'joined_at' => now(),
+            ]);
+
+            DB::commit();
+
+            return new WorkspaceResource($workspace);
+
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            // Log::error($th); // optional: log error for debugging
+            return response()->json([
+                'message' => 'Gagal menyimpan workspace.',
+                'error'   => $th->getMessage(),
+            ], 500);
         }
-
-        // Sync workspace creator as owner in pivot table
-        $workspace->users()->attach(Auth::id(), [
-            'role'      => 'owner',
-            'status'    => 'active',
-            'joined_at' => now(),
-        ]);
-
-        return new WorkspaceResource($workspace);
     }
 
     // GET /api/workspaces/{id}
@@ -94,10 +109,10 @@ class WorkspaceController extends Controller
         $slug = $this->generateUniqueSlug($slug);
 
         $workspace->update([
-            'title'      => $validated['title'],
+            'title'       => $validated['title'],
             'description' => $validated['description'],
-            'slug'       => $slug,
-            'visibility' => $validated['visibility'],
+            'slug'        => $slug,
+            'visibility'  => $validated['visibility'],
         ]);
 
         if ($request->hasFile('banner_image')) {
@@ -108,13 +123,13 @@ class WorkspaceController extends Controller
             }
             // Upload new banner_image to Cloudinary
             $uploadResult = Cloudinary::upload($request->file('banner_image')->getRealPath());
-            
+
             // Get the secure URL and public ID
             $uploadedFileUrl = $uploadResult->getSecurePath();
-            $publicId = $uploadResult->getPublicId();
-            
+            $publicId        = $uploadResult->getPublicId();
+
             // Update wo$workspace's banner_image and banner_image_public_id
-            $workspace->banner_image = $uploadedFileUrl;
+            $workspace->banner_image           = $uploadedFileUrl;
             $workspace->banner_image_public_id = $publicId;
             $workspace->save();
         }
