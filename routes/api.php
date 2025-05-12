@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CardController;
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WorkspaceController;
@@ -67,4 +68,6 @@ Route::middleware('auth:sanctum')->group(function () {
 }); 
 
 Route::apiResource('boards', BoardController::class)->middleware('auth:sanctum');
-
+Route::apiResource('cards', CardController::class)->middleware('auth:sanctum');
+// Additional custom route for board-specific cards
+Route::get('boards/{board}/cards', [CardController::class, 'getByBoard'])->middleware('auth:sanctum');

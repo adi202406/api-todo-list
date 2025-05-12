@@ -35,6 +35,6 @@ class BoardController extends Controller
         $board->delete();
         return response()->json([
             'message' => 'Board deleted successfully'
-        ], 204);
+        ], 200);
     }
 }
