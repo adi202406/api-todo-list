@@ -27,4 +27,10 @@ class Card extends Model
     {
         return $this->belongsTo(Board::class);
     }
+
+     public function labels()
+    {
+        return $this->belongsToMany(Label::class, 'card_label')
+            ->withTimestamps(); // Relasi many-to-many, Card -> Label melalui pivot
+    }
 }

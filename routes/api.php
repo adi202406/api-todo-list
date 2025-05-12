@@ -4,7 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\BoardController;
+use App\Http\Controllers\LabelController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\CardLabelController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\Auth\VerificationController;
@@ -71,3 +73,12 @@ Route::apiResource('boards', BoardController::class)->middleware('auth:sanctum')
 Route::apiResource('cards', CardController::class)->middleware('auth:sanctum');
 // Additional custom route for board-specific cards
 Route::get('boards/{board}/cards', [CardController::class, 'getByBoard'])->middleware('auth:sanctum');
+
+Route::apiResource('labels', LabelController::class)->middleware('auth:sanctum');
+
+// Card-Label routes
+Route::prefix('cards')->middleware('auth:sanctum')->group(function () {
+    Route::post('/attach-label', [CardLabelController::class, 'attach']);
+    Route::post('/detach-label', [CardLabelController::class, 'detach']);
+    Route::get('/{cardId}/labels', [CardLabelController::class, 'getCardLabels']);
+});
