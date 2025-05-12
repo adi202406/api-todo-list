@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BoardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\GoogleAuthController;
@@ -64,4 +65,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('workspaces/{id}/accept-invitation', [WorkspaceController::class, 'acceptInvitation']);
     Route::delete('workspaces/{id}/users', [WorkspaceController::class, 'removeUser']);
 }); 
+
+Route::apiResource('boards', BoardController::class)->middleware('auth:sanctum');
 
