@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\User;
+use App\Models\Board;
 use App\Models\WorkspaceUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -40,6 +41,11 @@ class Workspace extends Model
         return $this->belongsToMany(User::class, 'workspace_user')
             ->withPivot(['role', 'status', 'invited_by', 'joined_at']) // ambil kolom tambahan di pivot
             ->withTimestamps();  // Relasi many-to-many, Workspace -> User melalui pivot
+    }
+
+    public function boards()
+    {
+        return $this->hasMany(Board::class); // Relasi one-to-many, Workspace -> Board
     }
     
 }

@@ -7,8 +7,12 @@ use App\Http\Controllers\BoardController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CardLabelController;
+use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\GoogleAuthController;
+use App\Http\Controllers\BoardActionController;
+use App\Http\Controllers\ChecklistItemController;
+use App\Http\Controllers\CardAssignmentController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
@@ -69,7 +73,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('workspaces/{id}/users', [WorkspaceController::class, 'removeUser']);
 }); 
 
-Route::apiResource('boards', BoardController::class)->middleware('auth:sanctum');
+Route::middleware('auth:sanctum')->group(function () {
+    Route::prefix('workspaces/{workspace}')->scopeBindings()->group(function () {
+        Route::apiResource('boards', BoardController::class);
+
+        Route::patch('boards/{board}/reorder', [BoardActionController::class, 'reorder']);
+        Route::patch('boards/{board}/toggle-favorite', [BoardActionController::class, 'toggleFavorite']);
+    });
+});
 Route::apiResource('cards', CardController::class)->middleware('auth:sanctum');
 // Additional custom route for board-specific cards
 Route::get('boards/{board}/cards', [CardController::class, 'getByBoard'])->middleware('auth:sanctum');
@@ -81,4 +92,26 @@ Route::prefix('cards')->middleware('auth:sanctum')->group(function () {
     Route::post('/attach-label', [CardLabelController::class, 'attach']);
     Route::post('/detach-label', [CardLabelController::class, 'detach']);
     Route::get('/{cardId}/labels', [CardLabelController::class, 'getCardLabels']);
+});
+
+// Cards and Assignments - proper nesting of resources
+Route::middleware('auth:sanctum')->group(function () {
+    // Card assignments as a nested resource
+    Route::get('cards/{card}/assignees', [CardAssignmentController::class, 'index']);
+    Route::post('cards/{card}/assignees', [CardAssignmentController::class, 'store']);
+    Route::delete('cards/{card}/assignees/{user}', [CardAssignmentController::class, 'destroy']);
+    
+    // Checklists as a resource
+    Route::apiResource('checklists', ChecklistController::class);
+    Route::put('checklists/{checklist}/position/{position}', [ChecklistController::class, 'updatePosition']);
+    
+    // Checklist items as a nested resource
+    Route::get('checklists/{checklist}/items', [ChecklistItemController::class, 'index']);
+    Route::post('checklists/{checklist}/items', [ChecklistItemController::class, 'store']);
+    Route::get('checklists/{checklist}/items/{item}', [ChecklistItemController::class, 'show']);
+    Route::put('checklists/{checklist}/items/{item}', [ChecklistItemController::class, 'update']);
+    Route::delete('checklists/{checklist}/items/{item}', [ChecklistItemController::class, 'destroy']);
+    
+    // Bulk update operation for items
+    Route::put('checklists/{checklist}/items', [ChecklistItemController::class, 'bulkUpdate']);
 });

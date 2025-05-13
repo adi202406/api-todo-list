@@ -1,40 +1,53 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Board;
+use App\Models\Workspace;
 use App\Http\Requests\BoardRequest;
 use App\Http\Resources\BoardResource;
 
 class BoardController extends Controller
 {
-    public function index()
+    public function index(Workspace $workspace)
     {
-        $boards = Board::orderBy('position')->get();
+        $boards = $workspace->boards()
+            ->orderBy('position')
+            ->withCount('cards')
+            ->get();
+
         return BoardResource::collection($boards);
     }
 
-    public function store(BoardRequest $request)
+    public function store(BoardRequest $request, Workspace $workspace)
     {
-        $board = Board::create($request->validated());
+        $validated = $request->validated();
+        $validated['workspace_id'] = $workspace->id;
+
+        $board = Board::create($validated);
+
         return new BoardResource($board);
     }
 
-    public function show(Board $board)
+    public function show(Workspace $workspace, Board $board)
     {
+        return new BoardResource($board->load(['workspace', 'cards']));
+    }
+
+    public function update(BoardRequest $request, Workspace $workspace, Board $board)
+    {
+        $validated = $request->validated();
+        $validated['workspace_id'] = $workspace->id;
+
+        $board->update($validated);
+
         return new BoardResource($board);
     }
 
-    public function update(BoardRequest $request, Board $board)
-    {
-        $board->update($request->validated());
-        return new BoardResource($board);
-    }
-
-    public function destroy(Board $board)
+    public function destroy(Workspace $workspace, Board $board)
     {
         $board->delete();
-        return response()->json([
-            'message' => 'Board deleted successfully'
-        ], 200);
+
+        return response()->json(null, 204);
     }
 }

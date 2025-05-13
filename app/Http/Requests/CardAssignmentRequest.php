@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class BoardRequest extends FormRequest
+class CardAssignmentRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,11 +22,8 @@ class BoardRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'workspace_id' => 'sometimes|exists:workspaces,id',
-            'name' => 'required|string|max:255',
-            'position' => 'sometimes|integer',
-            'color' => 'sometimes|string|max:7|regex:/^#[a-f0-9]{6}$/i',
-            'is_favorite' => 'sometimes|boolean'
+            'card_id' => 'required|exists:cards,id',
+            'user_id' => 'required|exists:users,id'
         ];
     }
 }
