@@ -17,51 +17,43 @@ use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 
+// ================== AUTH ROUTES ==================
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('profile', [ProfileController::class, 'getProfile']);
         Route::put('profile', [ProfileController::class, 'updateProfile']);
         Route::put('profile/password', [ProfileController::class, 'updatePassword']);
     });
+
+    // Google OAuth
+    Route::prefix('google')->group(function () {
+        Route::get('/', [GoogleAuthController::class, 'redirectToGoogle']);
+        Route::get('/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
+    });
 });
 
-// Password Reset Routes
-Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])
-    ->name('password.email');
+// ================== PASSWORD RESET ==================
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.update');
 
-Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])
-    ->name('password.update');
-
-// Email Verification Routes
+// ================== EMAIL VERIFICATION ==================
 Route::middleware('auth:sanctum')->group(function () {
-    // Send verification email
-    Route::post('/email/verification-notification', [VerificationController::class, 'sendVerificationEmail'])
-        ->name('verification.send');
-    
-    // Resend verification email
-    Route::post('/email/resend', [VerificationController::class, 'resend'])
-        ->name('verification.resend');
-    
-    // Verify email
-    Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
-        ->middleware(['signed'])
-        ->name('verification.verify');
+    Route::post('/email/verification-notification', [VerificationController::class, 'sendVerificationEmail'])->name('verification.send');
+    Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
+    Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->middleware(['signed'])->name('verification.verify');
 });
 
-Route::prefix('auth/google')->group(function () {
-    Route::get('/', [GoogleAuthController::class, 'redirectToGoogle']);
-    Route::get('/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
-});
-
-// Protected Routes
+// ================== GOOGLE PROFILE & LOGOUT ==================
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [GoogleAuthController::class, 'profile']);
     Route::post('/logout', [GoogleAuthController::class, 'logout']);
 });
 
+// ================== WORKSPACE ==================
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/workspaces', [WorkspaceController::class, 'index']);
     Route::post('/workspaces', [WorkspaceController::class, 'store']);
@@ -71,47 +63,52 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('workspaces/{id}/invite', [WorkspaceController::class, 'inviteUser']);
     Route::patch('workspaces/{id}/accept-invitation', [WorkspaceController::class, 'acceptInvitation']);
     Route::delete('workspaces/{id}/users', [WorkspaceController::class, 'removeUser']);
-}); 
+});
 
+// ================== BOARDS ==================
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('workspaces/{workspace}')->scopeBindings()->group(function () {
         Route::apiResource('boards', BoardController::class);
-
         Route::patch('boards/{board}/reorder', [BoardActionController::class, 'reorder']);
         Route::patch('boards/{board}/toggle-favorite', [BoardActionController::class, 'toggleFavorite']);
     });
 });
-Route::apiResource('cards', CardController::class)->middleware('auth:sanctum');
-// Additional custom route for board-specific cards
-Route::get('boards/{board}/cards', [CardController::class, 'getByBoard'])->middleware('auth:sanctum');
 
+// ================== CARDS ==================
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('cards', CardController::class);
+    Route::get('boards/{board}/cards', [CardController::class, 'getByBoard']);
+});
+
+// ================== LABELS ==================
 Route::apiResource('labels', LabelController::class)->middleware('auth:sanctum');
 
-// Card-Label routes
+// ================== CARD-LABEL ==================
 Route::prefix('cards')->middleware('auth:sanctum')->group(function () {
     Route::post('/attach-label', [CardLabelController::class, 'attach']);
     Route::post('/detach-label', [CardLabelController::class, 'detach']);
     Route::get('/{cardId}/labels', [CardLabelController::class, 'getCardLabels']);
 });
 
-// Cards and Assignments - proper nesting of resources
+// ================== CARD ASSIGNMENTS ==================
 Route::middleware('auth:sanctum')->group(function () {
-    // Card assignments as a nested resource
     Route::get('cards/{card}/assignees', [CardAssignmentController::class, 'index']);
     Route::post('cards/{card}/assignees', [CardAssignmentController::class, 'store']);
     Route::delete('cards/{card}/assignees/{user}', [CardAssignmentController::class, 'destroy']);
-    
-    // Checklists as a resource
+});
+
+// ================== CHECKLISTS ==================
+Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('checklists', ChecklistController::class);
     Route::put('checklists/{checklist}/position/{position}', [ChecklistController::class, 'updatePosition']);
-    
-    // Checklist items as a nested resource
+});
+
+// ================== CHECKLIST ITEMS ==================
+Route::middleware('auth:sanctum')->group(function () {
     Route::get('checklists/{checklist}/items', [ChecklistItemController::class, 'index']);
     Route::post('checklists/{checklist}/items', [ChecklistItemController::class, 'store']);
     Route::get('checklists/{checklist}/items/{item}', [ChecklistItemController::class, 'show']);
     Route::put('checklists/{checklist}/items/{item}', [ChecklistItemController::class, 'update']);
     Route::delete('checklists/{checklist}/items/{item}', [ChecklistItemController::class, 'destroy']);
-    
-    // Bulk update operation for items
     Route::put('checklists/{checklist}/items', [ChecklistItemController::class, 'bulkUpdate']);
 });
