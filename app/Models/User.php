@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Models\Workspace;
+use App\Models\UserDevice;
+use App\Models\DeviceToken;
 use App\Models\WorkspaceUser;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -90,4 +92,10 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->belongsToMany(Workspace::class, 'workspace_user'); // Relasi many-to-many, User -> Workspace melalui pivot
     }
+
+    public function devices()
+    {
+        return $this->hasMany(UserDevice::class);
+    }
+
 }

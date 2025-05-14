@@ -11,6 +11,7 @@ use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\BoardActionController;
+use App\Http\Controllers\FcmTokenController;
 use App\Http\Controllers\ChecklistItemController;
 use App\Http\Controllers\CardAssignmentController;
 use App\Http\Controllers\Auth\VerificationController;
@@ -111,4 +112,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('checklists/{checklist}/items/{item}', [ChecklistItemController::class, 'update']);
     Route::delete('checklists/{checklist}/items/{item}', [ChecklistItemController::class, 'destroy']);
     Route::put('checklists/{checklist}/items', [ChecklistItemController::class, 'bulkUpdate']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/fcm-token', [FcmTokenController::class, 'store']);
+    Route::post('/send-test-notification', [FcmTokenController::class, 'sendTestNotification']);
+    Route::delete('/fcm-token/{deviceToken}', [FcmTokenController::class, 'destroy']);
 });

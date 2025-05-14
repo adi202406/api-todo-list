@@ -3,12 +3,17 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Workspace;
+use App\Models\UserDevice;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\WorkspaceRequest;
 use App\Http\Resources\WorkspaceResource;
+use Kreait\Firebase\Messaging\CloudMessage;
+use Kreait\Firebase\Messaging\Notification;
+use App\Jobs\SendWorkspaceInvitationNotification;
+use App\Notifications\WorkspaceInvitationNotification;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class WorkspaceController extends Controller
@@ -161,11 +166,19 @@ class WorkspaceController extends Controller
         // Get the invited user
         $user = User::where('email', $validated['email'])->first();
 
+            // Prepare notification data
+        $notificationData = [
+            'title'        => 'Workspace Invitation',
+            'body'         => 'You have been invited to join "' . $workspace->title . '" as ' . $validated['role'],
+            'workspace_id' => $workspace->id,
+            'type'         => 'workspace_invitation',
+        ];
+
         // Include soft-deleted pivot record in the check
         $existingMember = $workspace->users()
             ->withPivot('status', 'deleted_at')
             ->wherePivot('user_id', $user->id)
-            ->withTrashed() // Include soft-deleted pivot if using custom pivot model with SoftDeletes
+            ->withTrashed()
             ->first();
 
         // Case: user still in workspace
@@ -183,14 +196,27 @@ class WorkspaceController extends Controller
             }
         }
 
+        // Prepare notification data
+        $notificationData = [
+            'title'        => 'Workspace Invitation',
+            'body'         => 'You have been invited to join "' . $workspace->name . '" as ' . $validated['role'],
+            'workspace_id' => $workspace->id,
+            'type'         => 'workspace_invitation',
+        ];
+
         // Case: user was removed (soft deleted) before — restore and update data
         if ($existingMember && ! is_null($existingMember->pivot->deleted_at)) {
             $workspace->users()->updateExistingPivot($user->id, [
                 'role'       => $validated['role'],
                 'status'     => 'pending',
                 'joined_at'  => null,
-                'deleted_at' => null, // restore soft delete
+                'deleted_at' => null,
             ]);
+
+            $user->notify(new WorkspaceInvitationNotification($workspace, Auth::user(), $validated['role']));
+
+            // Send push notification
+          SendWorkspaceInvitationNotification::dispatch($user, $notificationData);
 
             return response()->json([
                 'message' => 'User has been re-invited successfully',
@@ -205,9 +231,50 @@ class WorkspaceController extends Controller
             'joined_at'  => null,
         ]);
 
+        $user->notify(new WorkspaceInvitationNotification($workspace, Auth::user(), $validated['role']));
+
+        // Send push notification
+        SendWorkspaceInvitationNotification::dispatch($user, $notificationData);
+
         return response()->json([
             'message' => 'Invitation sent successfully',
         ], 201);
+    }
+
+    
+
+    private function sendPushNotification($user, array $data)
+    {
+        try {
+            $messaging = app('firebase.messaging');
+            
+            // Dapatkan semua device token user yang diundang
+            $deviceTokens = UserDevice::where('user_id', $user->id)
+                ->pluck('device_token')
+                ->toArray();
+            
+            if (empty($deviceTokens)) {
+                return false;
+            }
+
+            $notification = Notification::create($data['title'], $data['body']);
+
+            $message = CloudMessage::new()
+                ->withNotification($notification)
+                ->withData([
+                    'type' => $data['type'],
+                    'workspace_id' => $data['workspace_id'],
+                    'click_action' => 'FLUTTER_NOTIFICATION_CLICK' // Untuk aplikasi Flutter
+                ]);
+
+            // Kirim ke semua device user
+            $messaging->sendMulticast($message, $deviceTokens);
+
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Failed to send push notification: ' . $e->getMessage());
+            return false;
+        }
     }
 
     public function acceptInvitation($id)
