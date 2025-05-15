@@ -5,13 +5,14 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\LabelController;
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\FcmTokenController;
 use App\Http\Controllers\CardLabelController;
 use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\BoardActionController;
-use App\Http\Controllers\FcmTokenController;
 use App\Http\Controllers\ChecklistItemController;
 use App\Http\Controllers\CardAssignmentController;
 use App\Http\Controllers\Auth\VerificationController;
@@ -118,4 +119,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/fcm-token', [FcmTokenController::class, 'store']);
     Route::post('/send-test-notification', [FcmTokenController::class, 'sendTestNotification']);
     Route::delete('/fcm-token/{deviceToken}', [FcmTokenController::class, 'destroy']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('cards.comments', CommentController::class)
+        ->only(['index', 'store', 'show', 'update', 'destroy'])
+        ->shallow();
 });

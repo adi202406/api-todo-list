@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
-use App\Repositories\UserRepository;
+use App\Models\Comment;
+use App\Policies\CommentPolicy;
 use App\Services\GoogleAuthService;
+use App\Repositories\UserRepository;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -14,7 +16,7 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        //
+        Comment::class => CommentPolicy::class,
     ];
 
     /**

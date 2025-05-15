@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Models\User;
+use App\Models\Comment;
 use App\Models\Checklist;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -44,8 +46,13 @@ class Card extends Model
             ->withPivot('assigned_at');
     }
 
-    public function checklists()
+    public function checklists() : hasMany
     {
         return $this->hasMany(Checklist::class)->orderBy('position');
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
     }
 }
