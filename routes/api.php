@@ -8,6 +8,7 @@ use App\Http\Controllers\LabelController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\FcmTokenController;
+use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\CardLabelController;
 use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\WorkspaceController;
@@ -125,4 +126,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('cards.comments', CommentController::class)
         ->only(['index', 'store', 'show', 'update', 'destroy'])
         ->shallow();
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('cards.reminders', ReminderController::class)
+        ->scoped()->shallow();
+    Route::post('reminders/process', [ReminderController::class, 'processDueReminders']);
 });

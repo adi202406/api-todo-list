@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\User;
 use App\Models\Comment;
+use App\Models\Reminder;
 use App\Models\Checklist;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -54,5 +55,15 @@ class Card extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);
+    }
+
+    public function reminders()
+    {
+        return $this->hasMany(Reminder::class);
+    }
+
+    public function users()
+    {
+        return $this->belongsToMany(User::class);
     }
 }
