@@ -1,11 +1,12 @@
 <?php
-
 namespace App\Services;
 
-use App\Models\Reminder;
-use App\Models\User;
-use App\Services\NotificationService;
 use Carbon\Carbon;
+use App\Models\User;
+use App\Models\Reminder;
+use App\Mail\ReminderEmail;
+use Illuminate\Support\Facades\Mail;
+use App\Services\NotificationService;
 
 class ReminderService
 {
@@ -18,7 +19,7 @@ class ReminderService
 
     public function processDueReminders()
     {
-        $now = Carbon::now();
+        $now       = Carbon::now();
         $reminders = Reminder::where('remind_at', '<=', $now)
             ->where('is_sent', false)
             ->with(['card', 'users'])
@@ -46,12 +47,12 @@ class ReminderService
     protected function sendPushNotification(User $user, Reminder $reminder)
     {
         $title = 'Reminder: ' . $reminder->card->title;
-        $body = $reminder->card->description ?? 'You have a reminder!';
-        
+        $body  = $reminder->card->description ?? 'You have a reminder!';
+
         $data = [
-            'type' => 'reminder',
+            'type'        => 'reminder',
             'reminder_id' => $reminder->id,
-            'card_id' => $reminder->card_id,
+            'card_id'     => $reminder->card_id,
         ];
 
         $this->notificationService->sendPushNotification($user, $title, $body, $data);
@@ -59,7 +60,32 @@ class ReminderService
 
     protected function sendEmailNotification(User $user, Reminder $reminder)
     {
-        // Implement email sending logic here
-        // You can use Laravel's Mail facade or a dedicated email service
+        $maxRetries = 3; // Maximum number of retry attempts
+        $retryDelay = 5; // Delay between retries in seconds
+        $attempt    = 0;
+        $success    = false;
+
+        do {
+            $attempt++;
+            try {
+                Mail::to($user->email)
+                    ->queue(new ReminderEmail($user, $reminder));
+
+                \Log::info("Reminder email sent to {$user->email} for reminder {$reminder->id} (Attempt: {$attempt})");
+                $success = true;
+
+            } catch (\Exception $e) {
+                \Log::warning("Failed to send reminder email to {$user->email} (Attempt: {$attempt}): " . $e->getMessage());
+
+                if ($attempt < $maxRetries) {
+                    sleep($retryDelay); // Delay before next attempt
+                } else {
+                    \Log::error("Max retries reached for reminder email to {$user->email}");
+                    // You might want to mark this as failed in database or notify admin
+                }
+            }
+        } while (! $success && $attempt < $maxRetries);
+
+        return $success;
     }
 }
