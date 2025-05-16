@@ -18,6 +18,10 @@ class CardController extends Controller
     public function store(CardRequest $request)
     {
         $card = Card::create($request->validated());
+
+        $card->users()->attach(auth()->id(), [
+            'assigned_at' => now()
+        ]);
         return new CardResource($card);
     }
 

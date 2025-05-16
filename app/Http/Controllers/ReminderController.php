@@ -50,7 +50,7 @@ class ReminderController extends Controller
 
     public function store(StoreReminderRequest $request, Card $card): JsonResponse
     {
-        // Gate::authorize('create', [Reminder::class, $card]);
+        Gate::authorize('create', [Reminder::class, $card]);
 
         $reminder = $card->reminders()->create($request->validated());
 
@@ -62,8 +62,6 @@ class ReminderController extends Controller
 
     public function show(Card $card, Reminder $reminder): JsonResponse
     {
-        Gate::authorize('view', [$reminder, $card]);
-
         return response()->json([
             'data' => new ReminderResource($reminder->load('card'))
         ]);
@@ -94,8 +92,6 @@ class ReminderController extends Controller
 
     public function processDueReminders(): JsonResponse
     {
-        // Gate::authorize('process', Reminder::class);
-
         $count = $this->reminderService->processDueReminders();
 
         return response()->json([

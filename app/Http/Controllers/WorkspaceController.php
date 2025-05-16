@@ -216,7 +216,7 @@ class WorkspaceController extends Controller
             $user->notify(new WorkspaceInvitationNotification($workspace, Auth::user(), $validated['role']));
 
             // Send push notification
-          SendWorkspaceInvitationNotification::dispatch($user, $notificationData);
+            SendWorkspaceInvitationNotification::dispatch($user, $notificationData);
 
             return response()->json([
                 'message' => 'User has been re-invited successfully',
