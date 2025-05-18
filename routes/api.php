@@ -72,13 +72,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Boards (with workspace prefix & scopeBindings)
     Route::prefix('workspaces/{workspace}')->scopeBindings()->group(function () {
         Route::apiResource('boards', BoardController::class);
-        Route::patch('boards/{board}/reorder', [BoardActionController::class, 'reorder']);
-        Route::patch('boards/{board}/toggle-favorite', [BoardActionController::class, 'toggleFavorite']);
+        
+        Route::prefix('boards/{board}')->group(function () {
+            Route::patch('reorder', [BoardActionController::class, 'reorder']);
+            Route::patch('toggle-favorite', [BoardActionController::class, 'toggleFavorite']);
+            Route::apiResource('cards', CardController::class)->except(['index']);
+        });
     });
-
-    // Cards
-    Route::apiResource('cards', CardController::class);
-    Route::get('boards/{board}/cards', [CardController::class, 'getByBoard']);
 
     // Labels
     Route::apiResource('labels', LabelController::class);

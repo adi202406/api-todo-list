@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Board;
 use App\Models\Comment;
 use App\Models\Reminder;
+use App\Policies\BoardPolicy;
 use App\Policies\CommentPolicy;
 use App\Policies\ReminderPolicy;
 use App\Services\GoogleAuthService;
@@ -20,6 +22,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         Comment::class => CommentPolicy::class,
         Reminder::class => ReminderPolicy::class,
+        Board::class => BoardPolicy::class,
     ];
 
     /**

@@ -22,7 +22,6 @@ class CardRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'board_id' => 'required|exists:boards,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'due_date' => 'nullable|date',
